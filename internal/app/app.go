@@ -6,16 +6,20 @@ import (
 	"time"
 
 	"github.com/Mutter0815/pr-reviewer-service/internal/config"
+	"github.com/Mutter0815/pr-reviewer-service/internal/repository/postgres"
+	"github.com/Mutter0815/pr-reviewer-service/internal/service"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type App struct {
-	Cfg  *config.Config
-	Pool *pgxpool.Pool
+	Cfg      *config.Config
+	Pool     *pgxpool.Pool
+	Services *service.Services
 }
 
 func New() *App {
 	cfg := config.Load()
+
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -24,11 +28,23 @@ func New() *App {
 		log.Fatalf("failed to connect to postgres: %v", err)
 	}
 
+	teamRepo := postgres.NewTeamRepo(pool)
+	userRepo := postgres.NewUserRepo(pool)
+	prRepo := postgres.NewPullRequestRepo(pool)
+
+	teamSvc := service.NewTeamService(teamRepo, userRepo)
+	userSvc := service.NewUserService(userRepo)
+	prSvc := service.NewPRService(prRepo, userRepo, teamRepo)
+
+	services := service.NewServices(teamSvc, userSvc, prSvc)
+
 	return &App{
-		Cfg:  cfg,
-		Pool: pool,
+		Cfg:      cfg,
+		Pool:     pool,
+		Services: services,
 	}
 }
+
 func (a *App) Close() {
 	a.Pool.Close()
 }
