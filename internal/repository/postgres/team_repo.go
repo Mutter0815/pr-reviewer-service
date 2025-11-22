@@ -15,6 +15,12 @@ func NewTeamRepo(pool *pgxpool.Pool) *TeamRepo {
 }
 
 func (r *TeamRepo) Create(ctx context.Context, name string) error {
-	// TODO: реализуем позже
-	return nil
+	const query = `
+		INSERT INTO teams (team_name)
+		VALUES ($1)
+		ON CONFLICT (team_name) DO NOTHING;
+	`
+
+	_, err := r.pool.Exec(ctx, query, name)
+	return err
 }
