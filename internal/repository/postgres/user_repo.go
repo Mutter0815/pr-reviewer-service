@@ -16,6 +16,15 @@ func NewUserRepo(pool *pgxpool.Pool) *UserRepo {
 }
 
 func (r *UserRepo) Upsert(ctx context.Context, u domain.User) error {
-	// TODO: реализем позже
-	return nil
+	const query = `
+		INSERT INTO users (user_id, username, team_name, is_active)
+		VALUES ($1, $2, $3, $4)
+		ON CONFLICT (user_id) DO UPDATE SET
+			username  = EXCLUDED.username,
+			team_name = EXCLUDED.team_name,
+			is_active = EXCLUDED.is_active;
+	`
+
+	_, err := r.pool.Exec(ctx, query, u.ID, u.Username, u.TeamName, u.IsActive)
+	return err
 }
