@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 
+	"github.com/Mutter0815/pr-reviewer-service/internal/domain"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -18,9 +19,17 @@ func (r *TeamRepo) Create(ctx context.Context, name string) error {
 	const query = `
 		INSERT INTO teams (team_name)
 		VALUES ($1)
-		ON CONFLICT (team_name) DO NOTHING;
+		ON CONFLICT DO NOTHING;
 	`
 
-	_, err := r.pool.Exec(ctx, query, name)
-	return err
+	cmdTag, err := r.pool.Exec(ctx, query, name)
+	if err != nil {
+		return err
+	}
+
+	if cmdTag.RowsAffected() == 0 {
+		return domain.ErrTeamExists
+	}
+
+	return nil
 }
