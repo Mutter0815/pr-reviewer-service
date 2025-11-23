@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/Mutter0815/pr-reviewer-service/internal/domain"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -27,8 +28,8 @@ func (r *UserRepo) Upsert(ctx context.Context, u domain.User) error {
 
 	_, err := r.pool.Exec(ctx, query, u.ID, u.Username, u.TeamName, u.IsActive)
 	return err
-
 }
+
 func (r *UserRepo) GetByID(ctx context.Context, id string) (domain.User, error) {
 	const query = `
 		SELECT user_id, username, team_name, is_active
@@ -44,6 +45,9 @@ func (r *UserRepo) GetByID(ctx context.Context, id string) (domain.User, error) 
 		&u.IsActive,
 	)
 	if err != nil {
+		if err == pgx.ErrNoRows {
+			return domain.User{}, domain.ErrNotFound
+		}
 		return domain.User{}, err
 	}
 
@@ -73,19 +77,4 @@ func (r *UserRepo) ListActiveByTeam(ctx context.Context, teamName string) ([]dom
 	}
 
 	return users, nil
-}
-func (r *PullRequestRepo) AssignReviewers(ctx context.Context, prID string, reviewerIDs []string) error {
-	const query = `
-		INSERT INTO pull_request_reviewers (pull_request_id, reviewer_id)
-		VALUES ($1, $2)
-		ON CONFLICT DO NOTHING;
-	`
-
-	for _, reviewerID := range reviewerIDs {
-		if _, err := r.pool.Exec(ctx, query, prID, reviewerID); err != nil {
-			return err
-		}
-	}
-
-	return nil
 }
