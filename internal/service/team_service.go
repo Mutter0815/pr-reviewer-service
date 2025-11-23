@@ -36,3 +36,7 @@ func (s *TeamService) CreateOrUpdateTeam(ctx context.Context, team domain.Team) 
 	}
 	return nil
 }
+
+func (s *TeamService) GetTeamInfo(ctx context.Context, name string) (domain.Team, error) {
+	return s.teamRepo.GetByName(ctx, name)
+}

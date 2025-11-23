@@ -44,3 +44,27 @@ func (h *TeamHandler) AddTeam(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, resp)
 }
+func (h *TeamHandler) GetTeamInfo(c *gin.Context) {
+	teamName := c.Query("team_name")
+	if teamName == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": gin.H{
+				"code":    "BAD_REQUEST",
+				"message": "team_name query param is required",
+			},
+		})
+		return
+	}
+
+	team, err := h.teamService.GetTeamInfo(c.Request.Context(), teamName)
+	if err != nil {
+		httperror.Write(c, err)
+		return
+	}
+
+	resp := dto.TeamResponse{
+		Team: dto.TeamDTOFromDomain(team),
+	}
+
+	c.JSON(http.StatusOK, resp)
+}
