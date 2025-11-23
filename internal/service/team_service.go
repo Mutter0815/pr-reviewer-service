@@ -44,7 +44,3 @@ func (s *TeamService) GetTeamInfo(ctx context.Context, name string) (domain.Team
 func (s *TeamService) ListTeams(ctx context.Context) ([]domain.Team, error) {
 	return s.teamRepo.List(ctx)
 }
-
-func (s *TeamService) SetUserIsActive(ctx context.Context, userID string, isActive bool) (domain.User, error) {
-	return s.userRepo.SetIsActive(ctx, userID, isActive)
-}

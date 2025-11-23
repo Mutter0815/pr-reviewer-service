@@ -82,28 +82,3 @@ func (h *TeamHandler) ListTeams(c *gin.Context) {
 
 	c.JSON(http.StatusOK, resp)
 }
-
-func (h *TeamHandler) SetUserIsActive(c *gin.Context) {
-	var req dto.SetUserIsActiveRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": gin.H{
-				"code":    "BAD_REQUEST",
-				"message": "invalid request body",
-			},
-		})
-		return
-	}
-
-	user, err := h.teamService.SetUserIsActive(c.Request.Context(), req.UserID, req.IsActive)
-	if err != nil {
-		httperror.Write(c, err)
-		return
-	}
-
-	resp := dto.UserResponse{
-		User: dto.UserDTOFromDomain(user),
-	}
-
-	c.JSON(http.StatusOK, resp)
-}

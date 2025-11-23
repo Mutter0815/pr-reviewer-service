@@ -42,7 +42,7 @@ func New() *App {
 	prRepo := postgres.NewPullRequestRepo(pool)
 
 	teamSvc := service.NewTeamService(teamRepo, userRepo)
-	userSvc := service.NewUserService(userRepo)
+	userSvc := service.NewUserService(userRepo, prRepo)
 	prSvc := service.NewPRService(prRepo, userRepo, teamRepo)
 
 	services := service.NewServices(teamSvc, userSvc, prSvc)

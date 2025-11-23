@@ -176,12 +176,3 @@ func (s *PRService) MergePR(ctx context.Context, prID string) (domain.PullReques
 
 	return updated, nil
 }
-
-func (s *PRService) ListByReviewer(ctx context.Context, reviewerID string) ([]domain.PullRequest, error) {
-	_, err := s.userRepo.GetByID(ctx, reviewerID)
-	if err != nil {
-		return nil, err
-	}
-
-	return s.prRepo.ListByReviewer(ctx, reviewerID)
-}

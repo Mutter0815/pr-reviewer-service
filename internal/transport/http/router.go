@@ -24,8 +24,8 @@ func NewRouter(services *service.Services) *gin.Engine {
 	r.POST("/pullRequest/reassign", prHandler.Reassign)
 	r.POST("/pullRequest/merge", prHandler.Merge)
 
-	r.POST("/users/setIsActive", teamHandler.SetUserIsActive)
-	r.GET("/users/getReview", prHandler.ListByReviewer)
+	r.POST("/users/setIsActive", userHandler.SetIsActive)
+	r.GET("/users/getReview", userHandler.GetReview)
 	r.Static("/swagger", "internal/transport/http/swagger")
 	_ = teamHandler
 	_ = userHandler
