@@ -132,3 +132,23 @@ func (r *PullRequestRepo) AssignReviewers(ctx context.Context, prID string, revi
 
 	return nil
 }
+
+func (r *PullRequestRepo) Merge(ctx context.Context, prID string) error {
+	const query = `
+		UPDATE pull_requests
+		SET status = 'MERGED',
+		    merged_at = COALESCE(merged_at, now())
+		WHERE pull_request_id = $1;
+	`
+
+	cmd, err := r.pool.Exec(ctx, query, prID)
+	if err != nil {
+		return err
+	}
+
+	if cmd.RowsAffected() == 0 {
+		return domain.ErrNotFound
+	}
+
+	return nil
+}

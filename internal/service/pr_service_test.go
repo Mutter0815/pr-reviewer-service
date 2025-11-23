@@ -41,6 +41,10 @@ func (r *fakePRRepo) ReassignReviewer(ctx context.Context, prID, oldReviewerID, 
 	return nil
 }
 
+func (r *fakePRRepo) Merge(ctx context.Context, prID string) error {
+	return nil
+}
+
 type fakeUserRepo struct {
 	usersByID    map[string]domain.User
 	activeByTeam map[string][]domain.User

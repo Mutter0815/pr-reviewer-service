@@ -46,3 +46,11 @@ type PRReassignResponse struct {
 	PullRequest   PRDTO  `json:"pull_request"`
 	NewReviewerID string `json:"new_reviewer_id"`
 }
+
+type PRMergeRequest struct {
+	PullRequestID string `json:"pull_request_id" binding:"required"`
+}
+
+type PRMergeResponse struct {
+	PR PRDTO `json:"pr"`
+}

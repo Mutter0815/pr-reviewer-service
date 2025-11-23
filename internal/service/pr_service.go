@@ -143,3 +143,25 @@ func (s *PRService) ReassignReviewer(ctx context.Context, prID, oldReviewerID st
 
 	return updated, newID, nil
 }
+
+func (s *PRService) MergePR(ctx context.Context, prID string) (domain.PullRequest, error) {
+	pr, err := s.prRepo.GetByID(ctx, prID)
+	if err != nil {
+		return domain.PullRequest{}, err
+	}
+
+	if pr.Status == domain.PullRequestStatusMerged {
+		return pr, nil
+	}
+
+	if err := s.prRepo.Merge(ctx, prID); err != nil {
+		return domain.PullRequest{}, err
+	}
+
+	updated, err := s.prRepo.GetByID(ctx, prID)
+	if err != nil {
+		return domain.PullRequest{}, err
+	}
+
+	return updated, nil
+}

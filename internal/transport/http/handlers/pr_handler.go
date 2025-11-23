@@ -76,3 +76,29 @@ func (h *PRHandler) Reassign(c *gin.Context) {
 
 	c.JSON(http.StatusOK, resp)
 }
+
+func (h *PRHandler) Merge(c *gin.Context) {
+	var req dto.PRMergeRequest
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": gin.H{
+				"code":    "BAD_REQUEST",
+				"message": "invalid request body",
+			},
+		})
+		return
+	}
+
+	pr, err := h.prService.MergePR(c.Request.Context(), req.PullRequestID)
+	if err != nil {
+		httperror.Write(c, err)
+		return
+	}
+
+	resp := dto.PRMergeResponse{
+		PR: dto.PRDTOFromDomain(pr),
+	}
+
+	c.JSON(http.StatusOK, resp)
+}
