@@ -27,4 +27,65 @@ func (r *UserRepo) Upsert(ctx context.Context, u domain.User) error {
 
 	_, err := r.pool.Exec(ctx, query, u.ID, u.Username, u.TeamName, u.IsActive)
 	return err
+
+}
+func (r *UserRepo) GetByID(ctx context.Context, id string) (domain.User, error) {
+	const query = `
+		SELECT user_id, username, team_name, is_active
+		FROM users
+		WHERE user_id = $1;
+	`
+
+	var u domain.User
+	err := r.pool.QueryRow(ctx, query, id).Scan(
+		&u.ID,
+		&u.Username,
+		&u.TeamName,
+		&u.IsActive,
+	)
+	if err != nil {
+		return domain.User{}, err
+	}
+
+	return u, nil
+}
+
+func (r *UserRepo) ListActiveByTeam(ctx context.Context, teamName string) ([]domain.User, error) {
+	const query = `
+		SELECT user_id, username, team_name, is_active
+		FROM users
+		WHERE team_name = $1 AND is_active = TRUE;
+	`
+
+	rows, err := r.pool.Query(ctx, query, teamName)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var users []domain.User
+	for rows.Next() {
+		var u domain.User
+		if err := rows.Scan(&u.ID, &u.Username, &u.TeamName, &u.IsActive); err != nil {
+			return nil, err
+		}
+		users = append(users, u)
+	}
+
+	return users, nil
+}
+func (r *PullRequestRepo) AssignReviewers(ctx context.Context, prID string, reviewerIDs []string) error {
+	const query = `
+		INSERT INTO pull_request_reviewers (pull_request_id, reviewer_id)
+		VALUES ($1, $2)
+		ON CONFLICT DO NOTHING;
+	`
+
+	for _, reviewerID := range reviewerIDs {
+		if _, err := r.pool.Exec(ctx, query, prID, reviewerID); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
