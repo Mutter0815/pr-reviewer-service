@@ -68,3 +68,21 @@ func (h *TeamHandler) GetTeamInfo(c *gin.Context) {
 
 	c.JSON(http.StatusOK, resp)
 }
+
+func (h *TeamHandler) ListTeams(c *gin.Context) {
+	teams, err := h.teamService.ListTeams(c.Request.Context())
+	if err != nil {
+		httperror.Write(c, err)
+		return
+	}
+
+	resp := dto.TeamListResponse{
+		Teams: make([]dto.TeamDTO, 0, len(teams)),
+	}
+
+	for _, t := range teams {
+		resp.Teams = append(resp.Teams, dto.TeamDTOFromDomain(t))
+	}
+
+	c.JSON(http.StatusOK, resp)
+}

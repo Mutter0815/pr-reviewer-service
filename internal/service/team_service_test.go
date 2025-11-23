@@ -15,6 +15,10 @@ type fakeTeamRepo struct {
 	getByNameFn func(ctx context.Context, name string) (domain.Team, error)
 }
 
+func (r *fakeTeamRepo) List(ctx context.Context) ([]domain.Team, error) {
+	return nil, nil
+}
+
 func (r *fakeTeamRepo) Create(ctx context.Context, name string) error {
 	r.createdNames = append(r.createdNames, name)
 	return r.createErr

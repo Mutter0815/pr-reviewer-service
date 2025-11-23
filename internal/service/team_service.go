@@ -40,3 +40,7 @@ func (s *TeamService) CreateOrUpdateTeam(ctx context.Context, team domain.Team) 
 func (s *TeamService) GetTeamInfo(ctx context.Context, name string) (domain.Team, error) {
 	return s.teamRepo.GetByName(ctx, name)
 }
+
+func (s *TeamService) ListTeams(ctx context.Context) ([]domain.Team, error) {
+	return s.teamRepo.List(ctx)
+}

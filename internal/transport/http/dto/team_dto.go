@@ -10,11 +10,7 @@ type TeamMemberDTO struct {
 
 type TeamRequest struct {
 	TeamName string          `json:"team_name" binding:"required"`
-	Members  []TeamMemberDTO `json:"members" binding:"required,dive"`
-}
-
-type TeamResponse struct {
-	Team TeamDTO `json:"team"`
+	Members  []TeamMemberDTO `json:"members" binding:"required"`
 }
 
 type TeamDTO struct {
@@ -22,7 +18,15 @@ type TeamDTO struct {
 	Members  []TeamMemberDTO `json:"members"`
 }
 
-func (r TeamRequest) ToDomain() domain.Team {
+type TeamResponse struct {
+	Team TeamDTO `json:"team"`
+}
+
+type TeamListResponse struct {
+	Teams []TeamDTO `json:"teams"`
+}
+
+func (r *TeamRequest) ToDomain() domain.Team {
 	members := make([]domain.TeamMember, 0, len(r.Members))
 	for _, m := range r.Members {
 		members = append(members, domain.TeamMember{
@@ -38,9 +42,9 @@ func (r TeamRequest) ToDomain() domain.Team {
 	}
 }
 
-func TeamDTOFromDomain(team domain.Team) TeamDTO {
-	members := make([]TeamMemberDTO, 0, len(team.Members))
-	for _, m := range team.Members {
+func TeamDTOFromDomain(t domain.Team) TeamDTO {
+	members := make([]TeamMemberDTO, 0, len(t.Members))
+	for _, m := range t.Members {
 		members = append(members, TeamMemberDTO{
 			UserID:   m.ID,
 			Username: m.Username,
@@ -49,7 +53,7 @@ func TeamDTOFromDomain(team domain.Team) TeamDTO {
 	}
 
 	return TeamDTO{
-		TeamName: team.Name,
+		TeamName: t.Name,
 		Members:  members,
 	}
 }

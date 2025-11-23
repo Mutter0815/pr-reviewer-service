@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"context"
+	"errors"
 
 	"github.com/Mutter0815/pr-reviewer-service/internal/domain"
 	"github.com/jackc/pgx/v5"
@@ -77,4 +78,43 @@ func (r *TeamRepo) GetByName(ctx context.Context, name string) (domain.Team, err
 	team.Members = members
 
 	return team, nil
+}
+
+func (r *TeamRepo) List(ctx context.Context) ([]domain.Team, error) {
+	const query = `
+		SELECT team_name
+		FROM teams
+		ORDER BY team_name;
+	`
+
+	rows, err := r.pool.Query(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	teams := make([]domain.Team, 0)
+
+	for rows.Next() {
+		var name string
+		if err := rows.Scan(&name); err != nil {
+			return nil, err
+		}
+
+		team, err := r.GetByName(ctx, name)
+		if err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				continue
+			}
+			return nil, err
+		}
+
+		teams = append(teams, team)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return teams, nil
 }
