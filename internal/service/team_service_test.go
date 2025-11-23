@@ -114,15 +114,18 @@ func TestTeamService_CreateOrUpdateTeam_TeamExists(t *testing.T) {
 
 	team := domain.Team{
 		Name: "backend",
+		Members: []domain.TeamMember{
+			{ID: "u1", Username: "Alice", IsActive: true},
+		},
 	}
 
 	err := svc.CreateOrUpdateTeam(ctx, team)
-	if !errors.Is(err, domain.ErrTeamExists) {
-		t.Fatalf("expected ErrTeamExists, got %v", err)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
 	}
 
-	if len(userRepo.upserted) != 0 {
-		t.Fatalf("expected 0 calls to Upsert, got %d", len(userRepo.upserted))
+	if len(userRepo.upserted) != len(team.Members) {
+		t.Fatalf("expected %d upserts, got %d", len(team.Members), len(userRepo.upserted))
 	}
 }
 

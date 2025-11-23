@@ -80,6 +80,30 @@ func (r *prRepoFake) ListByReviewer(ctx context.Context, reviewerID string) ([]d
 	return nil, nil
 }
 
+func (r *prRepoFake) RemoveReviewer(ctx context.Context, prID, reviewerID string) error {
+	list := r.reviewers[prID]
+	filtered := make([]string, 0, len(list))
+	for _, id := range list {
+		if id != reviewerID {
+			filtered = append(filtered, id)
+		}
+	}
+	r.reviewers[prID] = filtered
+
+	if pr, ok := r.prs[prID]; ok {
+		out := make([]string, 0, len(pr.AssignedReviewers))
+		for _, id := range pr.AssignedReviewers {
+			if id != reviewerID {
+				out = append(out, id)
+			}
+		}
+		pr.AssignedReviewers = out
+		r.prs[prID] = pr
+	}
+
+	return nil
+}
+
 type userRepoFake struct {
 	usersByID    map[string]domain.User
 	activeByTeam map[string][]domain.User
@@ -232,7 +256,7 @@ func TestPRService_ReassignReviewer(t *testing.T) {
 			"pr-1": {
 				ID:       "pr-1",
 				Name:     "Reassign",
-				AuthorID: "u1",
+				AuthorID: "author",
 				Status:   domain.PullRequestStatusOpen,
 			},
 		},
@@ -243,15 +267,17 @@ func TestPRService_ReassignReviewer(t *testing.T) {
 
 	userRepo := &userRepoFake{
 		usersByID: map[string]domain.User{
-			"u1": {ID: "u1", TeamName: "team", IsActive: true},
-			"u2": {ID: "u2", TeamName: "team", IsActive: true},
-			"u3": {ID: "u3", TeamName: "team", IsActive: true},
+			"author": {ID: "author", TeamName: "authors", IsActive: true},
+			"u2":     {ID: "u2", TeamName: "reviewers", IsActive: true},
+			"u3":     {ID: "u3", TeamName: "reviewers", IsActive: true},
 		},
 		activeByTeam: map[string][]domain.User{
-			"team": {
-				{ID: "u1", TeamName: "team", IsActive: true},
-				{ID: "u2", TeamName: "team", IsActive: true},
-				{ID: "u3", TeamName: "team", IsActive: true},
+			"authors": {
+				{ID: "author", TeamName: "authors", IsActive: true},
+			},
+			"reviewers": {
+				{ID: "u2", TeamName: "reviewers", IsActive: true},
+				{ID: "u3", TeamName: "reviewers", IsActive: true},
 			},
 		},
 	}
@@ -273,6 +299,58 @@ func TestPRService_ReassignReviewer(t *testing.T) {
 
 	if updated.AssignedReviewers[0] == "u2" {
 		t.Fatalf("expected reviewer to change, still %s", updated.AssignedReviewers[0])
+	}
+}
+
+func TestPRService_ReassignReviewer_ReusesExisting(t *testing.T) {
+	ctx := context.Background()
+
+	prRepo := &prRepoFake{
+		prs: map[string]domain.PullRequest{
+			"pr-small": {
+				ID:       "pr-small",
+				Name:     "Small team",
+				AuthorID: "author",
+				Status:   domain.PullRequestStatusOpen,
+				AssignedReviewers: []string{
+					"u2",
+					"u3",
+				},
+			},
+		},
+		reviewers: map[string][]string{
+			"pr-small": {"u2", "u3"},
+		},
+	}
+
+	userRepo := &userRepoFake{
+		usersByID: map[string]domain.User{
+			"author": {ID: "author", TeamName: "backend", IsActive: true},
+			"u2":     {ID: "u2", TeamName: "backend", IsActive: true},
+			"u3":     {ID: "u3", TeamName: "backend", IsActive: true},
+		},
+		activeByTeam: map[string][]domain.User{
+			"backend": {
+				{ID: "author", TeamName: "backend", IsActive: true},
+				{ID: "u2", TeamName: "backend", IsActive: true},
+				{ID: "u3", TeamName: "backend", IsActive: true},
+			},
+		},
+	}
+
+	svc := NewPRService(prRepo, userRepo, nil)
+
+	updated, newID, err := svc.ReassignReviewer(ctx, "pr-small", "u2")
+	if err != nil {
+		t.Fatalf("ReassignReviewer error: %v", err)
+	}
+
+	if newID != "u3" {
+		t.Fatalf("expected new reviewer u3, got %s", newID)
+	}
+
+	if len(updated.AssignedReviewers) != 1 || updated.AssignedReviewers[0] != "u3" {
+		t.Fatalf("expected reviewers [u3], got %v", updated.AssignedReviewers)
 	}
 }
 
