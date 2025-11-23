@@ -107,12 +107,12 @@ func (s *PRService) ReassignReviewer(ctx context.Context, prID, oldReviewerID st
 		return domain.PullRequest{}, "", domain.ErrNotAssigned
 	}
 
-	author, err := s.userRepo.GetByID(ctx, pr.AuthorID)
+	oldReviewer, err := s.userRepo.GetByID(ctx, oldReviewerID)
 	if err != nil {
 		return domain.PullRequest{}, "", err
 	}
 
-	active, err := s.userRepo.ListActiveByTeam(ctx, author.TeamName)
+	active, err := s.userRepo.ListActiveByTeam(ctx, oldReviewer.TeamName)
 	if err != nil {
 		return domain.PullRequest{}, "", err
 	}
@@ -137,8 +137,32 @@ func (s *PRService) ReassignReviewer(ctx context.Context, prID, oldReviewerID st
 		break
 	}
 
+	reuseAssigned := false
+	if newID == "" {
+		for _, u := range active {
+			if u.ID == pr.AuthorID {
+				continue
+			}
+			if u.ID == oldReviewerID {
+				continue
+			}
+			if _, used := assigned[u.ID]; !used {
+				continue
+			}
+			newID = u.ID
+			reuseAssigned = true
+			break
+		}
+	}
+
 	if newID == "" {
 		return domain.PullRequest{}, "", domain.ErrNoCandidate
+	}
+
+	if reuseAssigned {
+		if err := s.prRepo.RemoveReviewer(ctx, prID, newID); err != nil {
+			return domain.PullRequest{}, "", err
+		}
 	}
 
 	if err := s.prRepo.ReassignReviewer(ctx, prID, oldReviewerID, newID); err != nil {

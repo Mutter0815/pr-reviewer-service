@@ -123,6 +123,16 @@ func (r *PullRequestRepo) ReassignReviewer(ctx context.Context, prID, oldReviewe
 	return nil
 }
 
+func (r *PullRequestRepo) RemoveReviewer(ctx context.Context, prID, reviewerID string) error {
+	const query = `
+		DELETE FROM pull_request_reviewers
+		WHERE pull_request_id = $1 AND reviewer_id = $2;
+	`
+
+	_, err := r.pool.Exec(ctx, query, prID, reviewerID)
+	return err
+}
+
 func (r *PullRequestRepo) AssignReviewers(ctx context.Context, prID string, reviewerIDs []string) error {
 	const query = `
 		INSERT INTO pull_request_reviewers (pull_request_id, reviewer_id)

@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 
 	"github.com/Mutter0815/pr-reviewer-service/internal/domain"
 )
@@ -19,7 +20,7 @@ func NewTeamService(teamRepo domain.TeamRepository, userRepo domain.UserReposito
 }
 
 func (s *TeamService) CreateOrUpdateTeam(ctx context.Context, team domain.Team) error {
-	if err := s.teamRepo.Create(ctx, team.Name); err != nil {
+	if err := s.teamRepo.Create(ctx, team.Name); err != nil && !errors.Is(err, domain.ErrTeamExists) {
 		return err
 	}
 

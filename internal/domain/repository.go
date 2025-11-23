@@ -22,6 +22,7 @@ type PullRequestRepository interface {
 	GetByID(ctx context.Context, id string) (PullRequest, error)
 	ListReviewers(ctx context.Context, prID string) ([]string, error)
 	ReassignReviewer(ctx context.Context, prID, oldReviewerID, newReviewerID string) error
+	RemoveReviewer(ctx context.Context, prID, reviewerID string) error
 	Merge(ctx context.Context, prID string) error
 	ListByReviewer(ctx context.Context, reviewerID string) ([]PullRequest, error)
 }
