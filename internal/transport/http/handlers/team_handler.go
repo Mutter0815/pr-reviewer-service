@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/Mutter0815/pr-reviewer-service/internal/service"
+	"github.com/Mutter0815/pr-reviewer-service/internal/transport/http/dto"
 	"github.com/gin-gonic/gin"
 )
 
@@ -17,8 +18,34 @@ func NewTeamHandler(teamService *service.TeamService) *TeamHandler {
 	}
 }
 
-func (h *TeamHandler) Stub(c *gin.Context) {
-	c.JSON(http.StatusNotImplemented, gin.H{
-		"error": "not implemented",
-	})
+func (h *TeamHandler) AddTeam(c *gin.Context) {
+	var req dto.TeamRequest
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": gin.H{
+				"code":    "BAD_REQUEST",
+				"message": "invalid request body",
+			},
+		})
+		return
+	}
+
+	team := req.ToDomain()
+	if err := h.teamService.CreateOrUpdateTeam(c.Request.Context(), team); err != nil {
+		// TODO: добавить разбор domain.ErrTeamExists и других ошибок
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": gin.H{
+				"code":    "INTERNAL",
+				"message": err.Error(),
+			},
+		})
+		return
+	}
+
+	resp := dto.TeamResponse{
+		Team: dto.TeamDTOFromDomain(team),
+	}
+
+	c.JSON(http.StatusCreated, resp)
 }

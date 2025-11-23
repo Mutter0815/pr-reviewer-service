@@ -16,9 +16,9 @@ func NewRouter(services *service.Services) *gin.Engine {
 	prHandler := handlers.NewPRHandler(services.PR)
 
 	r.GET("/health", healthHandler.Health)
+	r.POST("/team/add", teamHandler.AddTeam)
 
 	// TODO: позже по openapi.yml:
-	// r.POST("/team/add",)
 	// r.GET("/team/info",)
 	// r.POST("/pr/create")
 	// r.POST("/pr/assign")

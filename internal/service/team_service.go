@@ -19,6 +19,20 @@ func NewTeamService(teamRepo domain.TeamRepository, userRepo domain.UserReposito
 }
 
 func (s *TeamService) CreateOrUpdateTeam(ctx context.Context, team domain.Team) error {
-	// TODO: реализуем позже
+	if err := s.teamRepo.Create(ctx, team.Name); err != nil {
+		return err
+	}
+
+	for _, m := range team.Members {
+		user := domain.User{
+			ID:       m.ID,
+			Username: m.Username,
+			TeamName: team.Name,
+			IsActive: m.IsActive,
+		}
+		if err := s.userRepo.Upsert(ctx, user); err != nil {
+			return err
+		}
+	}
 	return nil
 }
