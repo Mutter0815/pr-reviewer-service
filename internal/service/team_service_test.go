@@ -27,21 +27,13 @@ func (r *fakeTeamRepo) GetByName(ctx context.Context, name string) (domain.Team,
 	return domain.Team{}, domain.ErrNotFound
 }
 
-type fakeUserRepo struct {
-	upserted  []domain.User
-	upsertErr error
-}
-
-func (r *fakeUserRepo) Upsert(ctx context.Context, u domain.User) error {
-	r.upserted = append(r.upserted, u)
-	return r.upsertErr
-}
+// ВАЖНО: здесь больше НЕТ type fakeUserRepo — мы используем тот, что объявлен в pr_service_test.go
 
 func TestTeamService_CreateOrUpdateTeam_Success(t *testing.T) {
 	ctx := context.Background()
 
 	teamRepo := &fakeTeamRepo{}
-	userRepo := &fakeUserRepo{}
+	userRepo := &fakeUserRepo{} // <-- тип берём из pr_service_test.go
 
 	svc := NewTeamService(teamRepo, userRepo)
 
