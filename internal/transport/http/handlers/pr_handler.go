@@ -34,13 +34,14 @@ func (h *PRHandler) Create(c *gin.Context) {
 
 	pr := req.ToDomain()
 
-	if err := h.prService.CreatePR(c.Request.Context(), pr); err != nil {
+	created, err := h.prService.CreatePR(c.Request.Context(), pr)
+	if err != nil {
 		httperror.Write(c, err)
 		return
 	}
 
 	resp := dto.PRCreateResponse{
-		PullRequest: dto.PRDTOFromDomain(*pr),
+		PR: dto.PRDTOFromDomain(created),
 	}
 
 	c.JSON(http.StatusCreated, resp)
@@ -62,7 +63,7 @@ func (h *PRHandler) Reassign(c *gin.Context) {
 	pr, newReviewerID, err := h.prService.ReassignReviewer(
 		c.Request.Context(),
 		req.PullRequestID,
-		req.ReviewerID,
+		req.OldUserID,
 	)
 	if err != nil {
 		httperror.Write(c, err)
@@ -70,8 +71,8 @@ func (h *PRHandler) Reassign(c *gin.Context) {
 	}
 
 	resp := dto.PRReassignResponse{
-		PullRequest:   dto.PRDTOFromDomain(pr),
-		NewReviewerID: newReviewerID,
+		PR:         dto.PRDTOFromDomain(pr),
+		ReplacedBy: newReviewerID,
 	}
 
 	c.JSON(http.StatusOK, resp)

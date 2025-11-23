@@ -70,6 +70,12 @@ func (r *PullRequestRepo) GetByID(ctx context.Context, id string) (domain.PullRe
 		return domain.PullRequest{}, err
 	}
 
+	reviewers, err := r.ListReviewers(ctx, id)
+	if err != nil {
+		return domain.PullRequest{}, err
+	}
+	pr.AssignedReviewers = reviewers
+
 	return pr, nil
 }
 

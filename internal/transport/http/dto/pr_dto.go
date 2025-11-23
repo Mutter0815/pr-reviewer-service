@@ -1,6 +1,10 @@
 package dto
 
-import "github.com/Mutter0815/pr-reviewer-service/internal/domain"
+import (
+	"time"
+
+	"github.com/Mutter0815/pr-reviewer-service/internal/domain"
+)
 
 type PRCreateRequest struct {
 	ID       string `json:"pull_request_id"   binding:"required"`
@@ -9,14 +13,17 @@ type PRCreateRequest struct {
 }
 
 type PRDTO struct {
-	ID       string `json:"pull_request_id"`
-	Name     string `json:"pull_request_name"`
-	AuthorID string `json:"author_id"`
-	Status   string `json:"status"`
+	ID                string     `json:"pull_request_id"`
+	Name              string     `json:"pull_request_name"`
+	AuthorID          string     `json:"author_id"`
+	Status            string     `json:"status"`
+	AssignedReviewers []string   `json:"assigned_reviewers"`
+	CreatedAt         time.Time  `json:"createdAt"`
+	MergedAt          *time.Time `json:"mergedAt,omitempty"`
 }
 
 type PRCreateResponse struct {
-	PullRequest PRDTO `json:"pull_request"`
+	PR PRDTO `json:"pr"`
 }
 
 func (r PRCreateRequest) ToDomain() *domain.PullRequest {
@@ -30,21 +37,24 @@ func (r PRCreateRequest) ToDomain() *domain.PullRequest {
 
 func PRDTOFromDomain(pr domain.PullRequest) PRDTO {
 	return PRDTO{
-		ID:       pr.ID,
-		Name:     pr.Name,
-		AuthorID: pr.AuthorID,
-		Status:   string(pr.Status),
+		ID:                pr.ID,
+		Name:              pr.Name,
+		AuthorID:          pr.AuthorID,
+		Status:            string(pr.Status),
+		AssignedReviewers: append([]string(nil), pr.AssignedReviewers...),
+		CreatedAt:         pr.CreatedAt,
+		MergedAt:          pr.MergedAt,
 	}
 }
 
 type PRReassignRequest struct {
 	PullRequestID string `json:"pull_request_id" binding:"required"`
-	ReviewerID    string `json:"reviewer_id"     binding:"required"`
+	OldUserID     string `json:"old_user_id"     binding:"required"`
 }
 
 type PRReassignResponse struct {
-	PullRequest   PRDTO  `json:"pull_request"`
-	NewReviewerID string `json:"new_reviewer_id"`
+	PR         PRDTO  `json:"pr"`
+	ReplacedBy string `json:"replaced_by"`
 }
 
 type PRMergeRequest struct {

@@ -14,10 +14,16 @@ type fakePRRepo struct {
 	createErr error
 
 	assigned map[string][]string
+	prs      map[string]domain.PullRequest
 }
 
 func (r *fakePRRepo) Create(ctx context.Context, pr *domain.PullRequest) error {
 	r.created = append(r.created, pr)
+	if r.prs == nil {
+		r.prs = make(map[string]domain.PullRequest)
+	}
+	copy := *pr
+	r.prs[pr.ID] = copy
 	return r.createErr
 }
 
@@ -25,7 +31,11 @@ func (r *fakePRRepo) AssignReviewers(ctx context.Context, prID string, reviewerI
 	if r.assigned == nil {
 		r.assigned = make(map[string][]string)
 	}
-	r.assigned[prID] = append(r.assigned[prID], reviewerIDs...)
+	r.assigned[prID] = append([]string(nil), reviewerIDs...)
+	if pr, ok := r.prs[prID]; ok {
+		pr.AssignedReviewers = append([]string(nil), reviewerIDs...)
+		r.prs[prID] = pr
+	}
 	return nil
 }
 
@@ -34,18 +44,41 @@ func (r *fakePRRepo) ListByReviewer(ctx context.Context, reviewerID string) ([]d
 }
 
 func (r *fakePRRepo) GetByID(ctx context.Context, id string) (domain.PullRequest, error) {
-	return domain.PullRequest{}, nil
+	pr, ok := r.prs[id]
+	if !ok {
+		return domain.PullRequest{}, domain.ErrNotFound
+	}
+	return pr, nil
 }
 
 func (r *fakePRRepo) ListReviewers(ctx context.Context, prID string) ([]string, error) {
-	return nil, nil
+	return append([]string(nil), r.assigned[prID]...), nil
 }
 
 func (r *fakePRRepo) ReassignReviewer(ctx context.Context, prID, oldReviewerID, newReviewerID string) error {
+	if reviewers, ok := r.assigned[prID]; ok {
+		for i, id := range reviewers {
+			if id == oldReviewerID {
+				reviewers[i] = newReviewerID
+				break
+			}
+		}
+		r.assigned[prID] = reviewers
+		if pr, ok := r.prs[prID]; ok {
+			pr.AssignedReviewers = append([]string(nil), reviewers...)
+			r.prs[prID] = pr
+		}
+	}
 	return nil
 }
 
 func (r *fakePRRepo) Merge(ctx context.Context, prID string) error {
+	if pr, ok := r.prs[prID]; ok {
+		pr.Status = domain.PullRequestStatusMerged
+		now := time.Now().UTC()
+		pr.MergedAt = &now
+		r.prs[prID] = pr
+	}
 	return nil
 }
 
@@ -98,7 +131,7 @@ func TestPRService_CreatePR_Success(t *testing.T) {
 		AuthorID: "u1",
 	}
 
-	err := svc.CreatePR(ctx, pr)
+	created, err := svc.CreatePR(ctx, pr)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -122,6 +155,10 @@ func TestPRService_CreatePR_Success(t *testing.T) {
 	assigned := prRepo.assigned["pr-1"]
 	if len(assigned) != 1 || assigned[0] != "u2" {
 		t.Fatalf("expected one reviewer u2, got %v", assigned)
+	}
+
+	if len(created.AssignedReviewers) != 1 || created.AssignedReviewers[0] != "u2" {
+		t.Fatalf("expected created PR to include reviewer u2, got %v", created.AssignedReviewers)
 	}
 }
 
@@ -151,7 +188,7 @@ func TestPRService_CreatePR_RepoReturnsPRExists(t *testing.T) {
 		AuthorID: "u1",
 	}
 
-	err := svc.CreatePR(ctx, pr)
+	_, err := svc.CreatePR(ctx, pr)
 	if !errors.Is(err, domain.ErrPRExists) {
 		t.Fatalf("expected ErrPRExists, got %v", err)
 	}
@@ -195,7 +232,7 @@ func TestPRService_CreatePR_KeepExistingCreatedAt(t *testing.T) {
 		CreatedAt: createdAt,
 	}
 
-	err := svc.CreatePR(ctx, pr)
+	_, err := svc.CreatePR(ctx, pr)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -232,7 +269,7 @@ func TestPRService_CreatePR_RepoError(t *testing.T) {
 		AuthorID: "u3",
 	}
 
-	err := svc.CreatePR(ctx, pr)
+	_, err := svc.CreatePR(ctx, pr)
 	if !errors.Is(err, repoErr) {
 		t.Fatalf("expected repoErr, got %v", err)
 	}
@@ -267,7 +304,7 @@ func TestPRService_AssignTwoReviewers(t *testing.T) {
 		AuthorID: "u1",
 	}
 
-	if err := svc.CreatePR(ctx, pr); err != nil {
+	if _, err := svc.CreatePR(ctx, pr); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
@@ -305,7 +342,7 @@ func TestPRService_AssignOneReviewer(t *testing.T) {
 		AuthorID: "a1",
 	}
 
-	if err := svc.CreatePR(ctx, pr); err != nil {
+	if _, err := svc.CreatePR(ctx, pr); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
@@ -342,7 +379,7 @@ func TestPRService_NoCandidates(t *testing.T) {
 		AuthorID: "s1",
 	}
 
-	err := svc.CreatePR(ctx, pr)
+	_, err := svc.CreatePR(ctx, pr)
 	if !errors.Is(err, domain.ErrNoCandidate) {
 		t.Fatalf("expected ErrNoCandidate, got %v", err)
 	}

@@ -62,11 +62,7 @@ func (h *TeamHandler) GetTeamInfo(c *gin.Context) {
 		return
 	}
 
-	resp := dto.TeamResponse{
-		Team: dto.TeamDTOFromDomain(team),
-	}
-
-	c.JSON(http.StatusOK, resp)
+	c.JSON(http.StatusOK, dto.TeamDTOFromDomain(team))
 }
 
 func (h *TeamHandler) ListTeams(c *gin.Context) {

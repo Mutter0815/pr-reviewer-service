@@ -25,7 +25,7 @@ func NewPRService(
 	}
 }
 
-func (s *PRService) CreatePR(ctx context.Context, pr *domain.PullRequest) error {
+func (s *PRService) CreatePR(ctx context.Context, pr *domain.PullRequest) (domain.PullRequest, error) {
 	pr.Status = domain.PullRequestStatusOpen
 
 	if pr.CreatedAt.IsZero() {
@@ -33,17 +33,17 @@ func (s *PRService) CreatePR(ctx context.Context, pr *domain.PullRequest) error 
 	}
 
 	if err := s.prRepo.Create(ctx, pr); err != nil {
-		return err
+		return domain.PullRequest{}, err
 	}
 
 	author, err := s.userRepo.GetByID(ctx, pr.AuthorID)
 	if err != nil {
-		return err
+		return domain.PullRequest{}, err
 	}
 
 	candidates, err := s.userRepo.ListActiveByTeam(ctx, author.TeamName)
 	if err != nil {
-		return err
+		return domain.PullRequest{}, err
 	}
 
 	var reviewers []string
@@ -58,7 +58,7 @@ func (s *PRService) CreatePR(ctx context.Context, pr *domain.PullRequest) error 
 	}
 
 	if len(reviewers) == 0 {
-		return domain.ErrNoCandidate
+		return domain.PullRequest{}, domain.ErrNoCandidate
 	}
 
 	if len(reviewers) > 2 {
@@ -66,10 +66,21 @@ func (s *PRService) CreatePR(ctx context.Context, pr *domain.PullRequest) error 
 	}
 
 	if err := s.prRepo.AssignReviewers(ctx, pr.ID, reviewers); err != nil {
-		return err
+		return domain.PullRequest{}, err
 	}
 
-	return nil
+	pr.AssignedReviewers = append([]string(nil), reviewers...)
+
+	created, err := s.prRepo.GetByID(ctx, pr.ID)
+	if err != nil {
+		return domain.PullRequest{}, err
+	}
+
+	if len(created.AssignedReviewers) == 0 {
+		created.AssignedReviewers = append([]string(nil), reviewers...)
+	}
+
+	return created, nil
 }
 
 func (s *PRService) ReassignReviewer(ctx context.Context, prID, oldReviewerID string) (domain.PullRequest, string, error) {

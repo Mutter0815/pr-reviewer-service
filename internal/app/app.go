@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"log"
+	"os"
 	"time"
 
 	"github.com/Mutter0815/pr-reviewer-service/internal/config"
@@ -26,6 +27,14 @@ func New() *App {
 	pool, err := pgxpool.New(ctx, cfg.PGURL())
 	if err != nil {
 		log.Fatalf("failed to connect to postgres: %v", err)
+	}
+	sql, err := os.ReadFile("migrations/0001_init.up.sql")
+	if err != nil {
+		log.Fatalf("failed to read migration file: %v", err)
+	}
+
+	if _, err := pool.Exec(ctx, string(sql)); err != nil {
+		log.Fatalf("failed to apply migration: %v", err)
 	}
 
 	teamRepo := postgres.NewTeamRepo(pool)

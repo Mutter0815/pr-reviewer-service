@@ -31,13 +31,13 @@ func Write(c *gin.Context, err error) {
 	case errors.Is(err, domain.ErrTeamExists):
 		c.JSON(http.StatusBadRequest, New("TEAM_EXISTS", err.Error()))
 	case errors.Is(err, domain.ErrPRExists):
-		c.JSON(http.StatusBadRequest, New("PR_EXISTS", err.Error()))
+		c.JSON(http.StatusConflict, New("PR_EXISTS", err.Error()))
 	case errors.Is(err, domain.ErrPRMerged):
-		c.JSON(http.StatusBadRequest, New("PR_MERGED", err.Error()))
+		c.JSON(http.StatusConflict, New("PR_MERGED", err.Error()))
 	case errors.Is(err, domain.ErrNotAssigned):
-		c.JSON(http.StatusBadRequest, New("NOT_ASSIGNED", err.Error()))
+		c.JSON(http.StatusConflict, New("NOT_ASSIGNED", err.Error()))
 	case errors.Is(err, domain.ErrNoCandidate):
-		c.JSON(http.StatusBadRequest, New("NO_CANDIDATE", err.Error()))
+		c.JSON(http.StatusConflict, New("NO_CANDIDATE", err.Error()))
 	case errors.Is(err, domain.ErrNotFound):
 		c.JSON(http.StatusNotFound, New("NOT_FOUND", err.Error()))
 	default:
