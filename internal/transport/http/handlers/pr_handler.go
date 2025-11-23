@@ -45,3 +45,34 @@ func (h *PRHandler) Create(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, resp)
 }
+
+func (h *PRHandler) Reassign(c *gin.Context) {
+	var req dto.PRReassignRequest
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": gin.H{
+				"code":    "BAD_REQUEST",
+				"message": "invalid request body",
+			},
+		})
+		return
+	}
+
+	pr, newReviewerID, err := h.prService.ReassignReviewer(
+		c.Request.Context(),
+		req.PullRequestID,
+		req.ReviewerID,
+	)
+	if err != nil {
+		httperror.Write(c, err)
+		return
+	}
+
+	resp := dto.PRReassignResponse{
+		PullRequest:   dto.PRDTOFromDomain(pr),
+		NewReviewerID: newReviewerID,
+	}
+
+	c.JSON(http.StatusOK, resp)
+}

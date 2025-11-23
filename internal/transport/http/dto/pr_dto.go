@@ -36,3 +36,13 @@ func PRDTOFromDomain(pr domain.PullRequest) PRDTO {
 		Status:   string(pr.Status),
 	}
 }
+
+type PRReassignRequest struct {
+	PullRequestID string `json:"pull_request_id" binding:"required"`
+	ReviewerID    string `json:"reviewer_id"     binding:"required"`
+}
+
+type PRReassignResponse struct {
+	PullRequest   PRDTO  `json:"pull_request"`
+	NewReviewerID string `json:"new_reviewer_id"`
+}
