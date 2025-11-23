@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"time"
 
 	"github.com/Mutter0815/pr-reviewer-service/internal/domain"
 )
@@ -25,6 +26,11 @@ func NewPRService(
 }
 
 func (s *PRService) CreatePR(ctx context.Context, pr *domain.PullRequest) error {
-	// TODO: реализуем позже
-	return nil
+	pr.Status = domain.PullRequestStatusOpen
+
+	if pr.CreatedAt.IsZero() {
+		pr.CreatedAt = time.Now().UTC()
+	}
+
+	return s.prRepo.Create(ctx, pr)
 }

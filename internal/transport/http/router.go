@@ -18,9 +18,9 @@ func NewRouter(services *service.Services) *gin.Engine {
 	r.GET("/health", healthHandler.Health)
 	r.POST("/team/add", teamHandler.AddTeam)
 	r.GET("/team/info", teamHandler.GetTeamInfo)
+	r.POST("/pr/create", prHandler.Create)
 
 	// TODO: позже по openapi.yml:
-	// r.POST("/pr/create")
 	// r.POST("/pr/assign")
 	// r.POST("/pr/reassign",)
 	// r.POST("/pr/merge",)

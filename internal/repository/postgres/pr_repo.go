@@ -7,34 +7,41 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type PRRepo struct {
+type PullRequestRepo struct {
 	pool *pgxpool.Pool
 }
 
-func NewPullRequestRepo(pool *pgxpool.Pool) *PRRepo {
-	return &PRRepo{pool: pool}
+func NewPullRequestRepo(pool *pgxpool.Pool) *PullRequestRepo {
+	return &PullRequestRepo{pool: pool}
 }
 
-func (r *PRRepo) Create(ctx context.Context, pr *domain.PullRequest) error {
+func (r *PullRequestRepo) Create(ctx context.Context, pr *domain.PullRequest) error {
 	const query = `
 		INSERT INTO pull_requests (
 			pull_request_id,
 			pull_request_name,
 			author_id,
 			status,
-			created_at,
-			merged_at
+			created_at
 		)
-		VALUES ($1, $2, $3, $4, $5, $6);
+		VALUES ($1, $2, $3, $4, $5)
+		ON CONFLICT DO NOTHING;
 	`
 
-	_, err := r.pool.Exec(ctx, query,
+	cmd, err := r.pool.Exec(ctx, query,
 		pr.ID,
 		pr.Name,
 		pr.AuthorID,
-		string(pr.Status),
+		pr.Status,
 		pr.CreatedAt,
-		pr.MergedAt,
 	)
-	return err
+	if err != nil {
+		return err
+	}
+
+	if cmd.RowsAffected() == 0 {
+		return domain.ErrPRExists
+	}
+
+	return nil
 }
