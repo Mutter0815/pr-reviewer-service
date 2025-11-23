@@ -19,7 +19,7 @@ func NewRouter(services *service.Services) *gin.Engine {
 	r.POST("/team/add", teamHandler.AddTeam)
 	r.GET("/team/list", teamHandler.ListTeams)
 
-	r.GET("/team/info", teamHandler.GetTeamInfo)
+	r.GET("/team/get", teamHandler.GetTeamInfo)
 	r.POST("/pullRequest/create", prHandler.Create)
 	r.POST("/pullRequest/reassign", prHandler.Reassign)
 	r.POST("/pullRequest/merge", prHandler.Merge)
