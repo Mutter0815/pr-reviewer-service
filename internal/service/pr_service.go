@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"math/rand"
 	"time"
 
 	"github.com/Mutter0815/pr-reviewer-service/internal/domain"
@@ -44,6 +45,13 @@ func (s *PRService) CreatePR(ctx context.Context, pr *domain.PullRequest) (domai
 	candidates, err := s.userRepo.ListActiveByTeam(ctx, author.TeamName)
 	if err != nil {
 		return domain.PullRequest{}, err
+	}
+
+	if len(candidates) > 1 {
+		r := rand.New(rand.NewSource(time.Now().UnixNano()))
+		r.Shuffle(len(candidates), func(i, j int) {
+			candidates[i], candidates[j] = candidates[j], candidates[i]
+		})
 	}
 
 	var reviewers []string
@@ -115,6 +123,13 @@ func (s *PRService) ReassignReviewer(ctx context.Context, prID, oldReviewerID st
 	active, err := s.userRepo.ListActiveByTeam(ctx, oldReviewer.TeamName)
 	if err != nil {
 		return domain.PullRequest{}, "", err
+	}
+
+	if len(active) > 1 {
+		r := rand.New(rand.NewSource(time.Now().UnixNano()))
+		r.Shuffle(len(active), func(i, j int) {
+			active[i], active[j] = active[j], active[i]
+		})
 	}
 
 	assigned := make(map[string]struct{}, len(reviewers))

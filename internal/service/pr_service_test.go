@@ -211,8 +211,17 @@ func TestPRService_CreatePR_AssignReviewers(t *testing.T) {
 				t.Fatalf("expected %d reviewers, got %d (%v)", tt.wantCount, len(got), got)
 			}
 
-			if tt.wantCount > 0 && got[0] != tt.wantReviewer1 {
-				t.Fatalf("expected first reviewer %s, got %s", tt.wantReviewer1, got[0])
+			if tt.wantCount > 0 {
+				found := false
+				for _, id := range got {
+					if id == tt.wantReviewer1 {
+						found = true
+						break
+					}
+				}
+				if !found {
+					t.Fatalf("expected reviewer %s in assigned list, got %v", tt.wantReviewer1, got)
+				}
 			}
 
 			if len(created.AssignedReviewers) != tt.wantCount {
