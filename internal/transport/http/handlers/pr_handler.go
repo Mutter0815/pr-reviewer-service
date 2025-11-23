@@ -102,3 +102,33 @@ func (h *PRHandler) Merge(c *gin.Context) {
 
 	c.JSON(http.StatusOK, resp)
 }
+
+func (h *PRHandler) ListByReviewer(c *gin.Context) {
+	userID := c.Query("user_id")
+	if userID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": gin.H{
+				"code":    "BAD_REQUEST",
+				"message": "user_id query param is required",
+			},
+		})
+		return
+	}
+
+	prs, err := h.prService.ListByReviewer(c.Request.Context(), userID)
+	if err != nil {
+		httperror.Write(c, err)
+		return
+	}
+
+	resp := dto.PRListByUserResponse{
+		UserID:       userID,
+		PullRequests: make([]dto.PRShortDTO, 0, len(prs)),
+	}
+
+	for _, pr := range prs {
+		resp.PullRequests = append(resp.PullRequests, dto.PRShortDTOFromDomain(pr))
+	}
+
+	c.JSON(http.StatusOK, resp)
+}

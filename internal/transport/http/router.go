@@ -25,6 +25,7 @@ func NewRouter(services *service.Services) *gin.Engine {
 	r.POST("/pullRequest/merge", prHandler.Merge)
 
 	r.POST("/users/setIsActive", teamHandler.SetUserIsActive)
+	r.GET("/users/getReview", prHandler.ListByReviewer)
 
 	_ = teamHandler
 	_ = userHandler

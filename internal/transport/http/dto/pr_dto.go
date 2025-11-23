@@ -54,3 +54,24 @@ type PRMergeRequest struct {
 type PRMergeResponse struct {
 	PR PRDTO `json:"pr"`
 }
+
+type PRShortDTO struct {
+	ID       string `json:"pull_request_id"`
+	Name     string `json:"pull_request_name"`
+	AuthorID string `json:"author_id"`
+	Status   string `json:"status"`
+}
+
+func PRShortDTOFromDomain(pr domain.PullRequest) PRShortDTO {
+	return PRShortDTO{
+		ID:       pr.ID,
+		Name:     pr.Name,
+		AuthorID: pr.AuthorID,
+		Status:   string(pr.Status),
+	}
+}
+
+type PRListByUserResponse struct {
+	UserID       string       `json:"user_id"`
+	PullRequests []PRShortDTO `json:"pull_requests"`
+}

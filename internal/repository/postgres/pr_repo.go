@@ -152,3 +152,41 @@ func (r *PullRequestRepo) Merge(ctx context.Context, prID string) error {
 
 	return nil
 }
+
+func (r *PullRequestRepo) ListByReviewer(ctx context.Context, reviewerID string) ([]domain.PullRequest, error) {
+	const query = `
+		SELECT pr.pull_request_id,
+		       pr.pull_request_name,
+		       pr.author_id,
+		       pr.status
+		FROM pull_requests pr
+		JOIN pull_request_reviewers rr
+		      ON pr.pull_request_id = rr.pull_request_id
+		WHERE rr.reviewer_id = $1
+		ORDER BY pr.created_at;
+	`
+
+	rows, err := r.pool.Query(ctx, query, reviewerID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var res []domain.PullRequest
+
+	for rows.Next() {
+		var pr domain.PullRequest
+		err := rows.Scan(
+			&pr.ID,
+			&pr.Name,
+			&pr.AuthorID,
+			&pr.Status,
+		)
+		if err != nil {
+			return nil, err
+		}
+		res = append(res, pr)
+	}
+
+	return res, nil
+}

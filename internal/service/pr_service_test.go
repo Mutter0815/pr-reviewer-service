@@ -29,6 +29,10 @@ func (r *fakePRRepo) AssignReviewers(ctx context.Context, prID string, reviewerI
 	return nil
 }
 
+func (r *fakePRRepo) ListByReviewer(ctx context.Context, reviewerID string) ([]domain.PullRequest, error) {
+	return nil, nil
+}
+
 func (r *fakePRRepo) GetByID(ctx context.Context, id string) (domain.PullRequest, error) {
 	return domain.PullRequest{}, nil
 }
