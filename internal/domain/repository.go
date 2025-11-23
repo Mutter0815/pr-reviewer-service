@@ -12,6 +12,7 @@ type UserRepository interface {
 	Upsert(ctx context.Context, u User) error
 	GetByID(ctx context.Context, id string) (User, error)
 	ListActiveByTeam(ctx context.Context, teamName string) ([]User, error)
+	SetIsActive(ctx context.Context, userID string, isActive bool) (User, error)
 }
 
 type PullRequestRepository interface {

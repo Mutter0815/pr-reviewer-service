@@ -24,6 +24,8 @@ func NewRouter(services *service.Services) *gin.Engine {
 	r.POST("/pullRequest/reassign", prHandler.Reassign)
 	r.POST("/pullRequest/merge", prHandler.Merge)
 
+	r.POST("/users/setIsActive", teamHandler.SetUserIsActive)
+
 	_ = teamHandler
 	_ = userHandler
 	_ = prHandler

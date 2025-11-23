@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"context"
+	"errors"
 
 	"github.com/Mutter0815/pr-reviewer-service/internal/domain"
 	"github.com/jackc/pgx/v5"
@@ -77,4 +78,25 @@ func (r *UserRepo) ListActiveByTeam(ctx context.Context, teamName string) ([]dom
 	}
 
 	return users, nil
+}
+
+func (r *UserRepo) SetIsActive(ctx context.Context, userID string, isActive bool) (domain.User, error) {
+	const query = `
+		UPDATE users
+		SET is_active = $2
+		WHERE user_id = $1
+		RETURNING user_id, username, team_name, is_active;
+	`
+
+	var u domain.User
+	err := r.pool.QueryRow(ctx, query, userID, isActive).
+		Scan(&u.ID, &u.Username, &u.TeamName, &u.IsActive)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return domain.User{}, domain.ErrNotFound
+		}
+		return domain.User{}, err
+	}
+
+	return u, nil
 }

@@ -15,6 +15,10 @@ type fakeTeamRepo struct {
 	getByNameFn func(ctx context.Context, name string) (domain.Team, error)
 }
 
+func (r *fakeUserRepo) SetIsActive(ctx context.Context, userID string, isActive bool) (domain.User, error) {
+	return domain.User{}, domain.ErrNotFound
+}
+
 func (r *fakeTeamRepo) List(ctx context.Context) ([]domain.Team, error) {
 	return nil, nil
 }
@@ -30,6 +34,7 @@ func (r *fakeTeamRepo) GetByName(ctx context.Context, name string) (domain.Team,
 	}
 	return domain.Team{}, domain.ErrNotFound
 }
+
 func TestTeamService_CreateOrUpdateTeam_Success(t *testing.T) {
 	ctx := context.Background()
 
