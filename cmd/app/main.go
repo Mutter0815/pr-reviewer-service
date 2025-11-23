@@ -3,15 +3,17 @@ package main
 import (
 	"log"
 
-	"github.com/gin-gonic/gin"
+	"github.com/Mutter0815/pr-reviewer-service/internal/app"
+	httptransport "github.com/Mutter0815/pr-reviewer-service/internal/transport/http"
 )
 
 func main() {
-	r := gin.Default()
+	application := app.New()
+	defer application.Close()
 
-	r.GET("/Health", func(c *gin.Context) { c.JSON(200, "OK") })
-	err := r.Run(":8080")
-	if err != nil {
-		log.Fatal("err")
+	router := httptransport.NewRouter(application.Services)
+	if err := router.Run(":8080"); err != nil {
+		log.Fatalf("failed to start server:%v", err)
 	}
+
 }
