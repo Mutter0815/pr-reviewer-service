@@ -9,6 +9,8 @@ import (
 	"github.com/Mutter0815/pr-reviewer-service/internal/domain"
 )
 
+//ФЕЙКИ ДЛЯ БАЗОВЫХ ТЕСТОВ
+
 type fakePRRepo struct {
 	created   []*domain.PullRequest
 	createErr error
@@ -18,6 +20,8 @@ func (r *fakePRRepo) Create(ctx context.Context, pr *domain.PullRequest) error {
 	r.created = append(r.created, pr)
 	return r.createErr
 }
+
+//БАЗОВЫЕ ТЕСТЫ
 
 func TestPRService_CreatePR_Success(t *testing.T) {
 	ctx := context.Background()
@@ -131,5 +135,158 @@ func TestPRService_CreatePR_RepoError(t *testing.T) {
 
 	if len(prRepo.created) != 1 {
 		t.Fatalf("expected 1 call to Create, got %d", len(prRepo.created))
+	}
+}
+
+//ФЕЙКИ ДЛЯ НАЗНАЧЕНИЯ РЕВЬЮЕРОВ
+
+type fakeUserRepoForAssign struct {
+	usersByID    map[string]domain.User
+	activeByTeam map[string][]domain.User
+}
+
+func (r *fakeUserRepoForAssign) GetByID(ctx context.Context, id string) (domain.User, error) {
+	u, ok := r.usersByID[id]
+	if !ok {
+		return domain.User{}, domain.ErrNotFound
+	}
+	return u, nil
+}
+
+func (r *fakeUserRepoForAssign) ListActiveByTeam(ctx context.Context, teamName string) ([]domain.User, error) {
+	return r.activeByTeam[teamName], nil
+}
+
+func (r *fakeUserRepoForAssign) Upsert(ctx context.Context, u domain.User) error {
+	return nil // не используется
+}
+
+type fakePRRepoForAssign struct {
+	createdPRs  []*domain.PullRequest
+	assignCalls map[string][]string
+}
+
+func (r *fakePRRepoForAssign) Create(ctx context.Context, pr *domain.PullRequest) error {
+	r.createdPRs = append(r.createdPRs, pr)
+	return nil
+}
+
+func (r *fakePRRepoForAssign) AssignReviewers(ctx context.Context, prID string, reviewerIDs []string) error {
+	if r.assignCalls == nil {
+		r.assignCalls = make(map[string][]string)
+	}
+	r.assignCalls[prID] = append(r.assignCalls[prID], reviewerIDs...)
+	return nil
+}
+
+// ====== ТЕСТЫ НАЗНАЧЕНИЯ РЕВЬЮЕРОВ
+
+func TestPRService_AssignTwoReviewers(t *testing.T) {
+	ctx := context.Background()
+
+	userRepo := &fakeUserRepoForAssign{
+		usersByID: map[string]domain.User{
+			"u1": {ID: "u1", Username: "Author", TeamName: "backend", IsActive: true},
+		},
+		activeByTeam: map[string][]domain.User{
+			"backend": {
+				{ID: "u1", Username: "Author", IsActive: true},
+				{ID: "u2", Username: "Rev1", IsActive: true},
+				{ID: "u3", Username: "Rev2", IsActive: true},
+			},
+		},
+	}
+
+	prRepo := &fakePRRepoForAssign{}
+	svc := NewPRService(prRepo, userRepo, nil)
+
+	pr := &domain.PullRequest{
+		ID:       "pr-100",
+		Name:     "Test PR",
+		AuthorID: "u1",
+	}
+
+	if err := svc.CreatePR(ctx, pr); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	assigned := prRepo.assignCalls["pr-100"]
+	if len(assigned) != 2 {
+		t.Fatalf("expected 2 reviewers, got %d", len(assigned))
+	}
+
+	if assigned[0] != "u2" || assigned[1] != "u3" {
+		t.Fatalf("expected reviewers [u2 u3], got %v", assigned)
+	}
+}
+
+func TestPRService_AssignOneReviewer(t *testing.T) {
+	ctx := context.Background()
+
+	userRepo := &fakeUserRepoForAssign{
+		usersByID: map[string]domain.User{
+			"a1": {ID: "a1", Username: "Author", TeamName: "small", IsActive: true},
+		},
+		activeByTeam: map[string][]domain.User{
+			"small": {
+				{ID: "a1", Username: "Author", IsActive: true},
+				{ID: "a2", Username: "OnlyRev", IsActive: true},
+			},
+		},
+	}
+
+	prRepo := &fakePRRepoForAssign{}
+	svc := NewPRService(prRepo, userRepo, nil)
+
+	pr := &domain.PullRequest{
+		ID:       "pr-one",
+		Name:     "Small team PR",
+		AuthorID: "a1",
+	}
+
+	if err := svc.CreatePR(ctx, pr); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	assigned := prRepo.assignCalls["pr-one"]
+	if len(assigned) != 1 {
+		t.Fatalf("expected 1 reviewer, got %d", len(assigned))
+	}
+
+	if assigned[0] != "a2" {
+		t.Fatalf("expected reviewer a2, got %s", assigned[0])
+	}
+}
+
+func TestPRService_NoCandidates(t *testing.T) {
+	ctx := context.Background()
+
+	userRepo := &fakeUserRepoForAssign{
+		usersByID: map[string]domain.User{
+			"s1": {ID: "s1", Username: "Solo", TeamName: "solo", IsActive: true},
+		},
+		activeByTeam: map[string][]domain.User{
+			"solo": {
+				{ID: "s1", Username: "Solo", IsActive: true},
+			},
+		},
+	}
+
+	prRepo := &fakePRRepoForAssign{}
+	svc := NewPRService(prRepo, userRepo, nil)
+
+	pr := &domain.PullRequest{
+		ID:       "pr-none",
+		Name:     "Solo PR",
+		AuthorID: "s1",
+	}
+
+	err := svc.CreatePR(ctx, pr)
+	if !errors.Is(err, domain.ErrNoCandidate) {
+		t.Fatalf("expected ErrNoCandidate, got %v", err)
+	}
+
+	if len(prRepo.assignCalls) != 0 {
+		t.Fatalf("expected no AssignReviewers calls, got %d", len(prRepo.assignCalls))
 	}
 }
