@@ -15,6 +15,24 @@ type fakeTeamRepo struct {
 	getByNameFn func(ctx context.Context, name string) (domain.Team, error)
 }
 
+type fakeUserRepo struct {
+	upserted  []domain.User
+	upsertErr error
+}
+
+func (r *fakeUserRepo) Upsert(ctx context.Context, u domain.User) error {
+	r.upserted = append(r.upserted, u)
+	return r.upsertErr
+}
+
+func (r *fakeUserRepo) GetByID(ctx context.Context, id string) (domain.User, error) {
+	return domain.User{}, nil
+}
+
+func (r *fakeUserRepo) ListActiveByTeam(ctx context.Context, teamName string) ([]domain.User, error) {
+	return nil, nil
+}
+
 func (r *fakeUserRepo) SetIsActive(ctx context.Context, userID string, isActive bool) (domain.User, error) {
 	return domain.User{}, domain.ErrNotFound
 }
