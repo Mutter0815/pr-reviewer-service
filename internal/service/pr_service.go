@@ -57,16 +57,14 @@ func (s *PRService) CreatePR(ctx context.Context, pr *domain.PullRequest) (domai
 		reviewers = append(reviewers, u.ID)
 	}
 
-	if len(reviewers) == 0 {
-		return domain.PullRequest{}, domain.ErrNoCandidate
-	}
-
 	if len(reviewers) > 2 {
 		reviewers = reviewers[:2]
 	}
 
-	if err := s.prRepo.AssignReviewers(ctx, pr.ID, reviewers); err != nil {
-		return domain.PullRequest{}, err
+	if len(reviewers) > 0 {
+		if err := s.prRepo.AssignReviewers(ctx, pr.ID, reviewers); err != nil {
+			return domain.PullRequest{}, err
+		}
 	}
 
 	pr.AssignedReviewers = append([]string(nil), reviewers...)
