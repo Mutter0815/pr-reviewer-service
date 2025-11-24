@@ -34,6 +34,24 @@ services:
       DB_USER: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}
       DB_NAME: ${DB_NAME}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+
+  e2e:
+    image: golang:1.24-alpine
+    working_dir: /workspace
+    environment:
+      APP_URL: http://app:8080
+    volumes:
+      - .:/workspace
+    command: ["sh", "-c", "go run ./tests/e2e"]
+    depends_on:
+      app:
+        condition: service_healthy
 
 volumes:
   db-data:
