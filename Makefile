@@ -1,13 +1,7 @@
-# Имя бинарника
-APP_NAME ?= pr-reviewer-service
-
-# Путь к main-файлу (поменяй, если у тебя другой)
 CMD_DIR ?= ./cmd/app
 
-# docker compose (если у тебя старая версия, поменяй на "docker-compose")
-COMPOSE ?= docker compose
+COMPOSE ?= docker-compose
 
-# Имена сервисов из docker-compose.yml
 APP_SERVICE ?= app      # сервис с нашим Go-приложением
 DB_SERVICE  ?= db       # сервис с Postgres
 
