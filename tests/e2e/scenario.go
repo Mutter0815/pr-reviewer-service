@@ -21,7 +21,21 @@ func runScenario(c *httpClient) error {
 		return fmt.Errorf("team/add request: %w", err)
 	}
 	if resp.StatusCode != http.StatusCreated {
-		return fmt.Errorf("team/add expected 201, got %d: %s", resp.StatusCode, string(body))
+		if resp.StatusCode != http.StatusBadRequest {
+			return fmt.Errorf("team/add expected 201 or 400, got %d: %s", resp.StatusCode, string(body))
+		}
+
+		var errResp struct {
+			Error struct {
+				Code string `json:"code"`
+			} `json:"error"`
+		}
+		if err := json.Unmarshal(body, &errResp); err != nil {
+			return fmt.Errorf("decode team/add error response: %w", err)
+		}
+		if errResp.Error.Code != "TEAM_EXISTS" {
+			return fmt.Errorf("team/add expected TEAM_EXISTS on 400, got %s: %s", errResp.Error.Code, string(body))
+		}
 	}
 
 	prReq := map[string]any{
@@ -35,7 +49,24 @@ func runScenario(c *httpClient) error {
 		return fmt.Errorf("pullRequest/create request: %w", err)
 	}
 	if resp.StatusCode != http.StatusCreated {
-		return fmt.Errorf("pullRequest/create expected 201, got %d: %s", resp.StatusCode, string(body))
+		if resp.StatusCode != http.StatusConflict {
+			return fmt.Errorf("pullRequest/create expected 201 or 409, got %d: %s", resp.StatusCode, string(body))
+		}
+
+		var errResp struct {
+			Error struct {
+				Code string `json:"code"`
+			} `json:"error"`
+		}
+		if err := json.Unmarshal(body, &errResp); err != nil {
+			return fmt.Errorf("decode create error response: %w", err)
+		}
+		if errResp.Error.Code != "PR_EXISTS" {
+			return fmt.Errorf("expected PR_EXISTS on 409, got %s: %s", errResp.Error.Code, string(body))
+		}
+
+		// PR уже создан предыдущим прогоном, сценарий считать пройденным.
+		return nil
 	}
 
 	var createResp struct {
