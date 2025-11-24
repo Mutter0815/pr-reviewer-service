@@ -27,9 +27,6 @@ func NewRouter(services *service.Services) *gin.Engine {
 	r.POST("/users/setIsActive", userHandler.SetIsActive)
 	r.GET("/users/getReview", userHandler.GetReview)
 	r.Static("/swagger", "internal/transport/http/swagger")
-	_ = teamHandler
-	_ = userHandler
-	_ = prHandler
 
 	return r
 }
